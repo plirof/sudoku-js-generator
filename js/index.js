@@ -426,7 +426,7 @@ var SudokuApp = function (config) {
   function render() {
     unbindEvents();
 
-    DOM_TARGET.innerHTML = '\n      <div class=\'sudoku\'>\n        ' + headerComponent() + '\n        ' + contentComponent() + '\n      </div>\n    ';
+    DOM_TARGET.innerHTML = '\n      <div class=\'sudoku\'>\n        ' + contentComponent() + '\n        ' + headerComponent() + '\n      </div>\n    ';
 
     bindEvents();
   }
