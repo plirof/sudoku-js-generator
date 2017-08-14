@@ -1,0 +1,839 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+
+		<title>Sudoku</title>
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+
+		<!--
+	  Sudoku Generator
+	  v0.2
+
+	  Copyright (c) 2010, David J. Rager
+	  All rights reserved.
+
+	  Redistribution and use in source and binary forms, with or without
+	  modification, are permitted provided that the following conditions are met: 
+
+	  * Redistributions of source code must retain the above copyright notice,
+	  this list of conditions and the following disclaimer.
+	  * Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	  * Neither the name of Fourth Woods Media nor the names of its
+	  contributors may be used to endorse or promote products derived from
+	  this software without specific prior written permission.
+
+	  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+	  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+	  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+	  DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+	  FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+	  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+	  SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+	  CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+	  OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+	  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+	  This is a simple user interface for interacting with the Sudoku puzzle
+	  generator. The interface provides game display and user input. It shows the
+	  current game state and any error conditions if conflicting values are entered.
+	  When the game is completed a dialog will be displayed showing the length of time
+	  it took to solve the puzzle.
+		-->
+
+		<style>
+
+.board {
+	width: 100%;
+	max-width:450px;
+	halign: center;
+}
+
+table {
+	border: 1px black solid;
+	border-collapse: collapse;
+	width:100%;
+}
+
+td {
+	border: 1px black solid;
+	width: 11.11%;
+	padding-bottom: 11.11%;
+	overflow: hidden;
+	text-align: center;
+}
+
+td div {
+	position:absolute;
+	width:11.11%;
+	height:11.11%;
+	max-width:50px;
+	text-align:center;
+	font-size:8vw;
+	cursor:default;
+	background-color: rgba(255,255,255,0);
+}
+
+.keypad .btn {
+	min-width:40px;
+}
+
+.bottom-spacer-5 {
+	margin-bottom: 5px;
+}
+
+    @media (min-width: 450px) {
+	    td div{
+		    font-size: 35px;
+	    }
+    }
+
+    tr:nth-child(1) td {
+	    border-top: 3px black solid;
+    }
+
+    tr:nth-child(3n) td {
+	    border-bottom: 3px black solid;
+    }
+
+    td:nth-child(1) {
+	    border-left: 3px black solid;
+    }
+
+    td:nth-child(3n) {
+	    border-right: 3px black solid;
+    }
+
+    td:hover
+	    {
+		    background-color:#eeeeee;
+	    }
+
+	    td.error
+	    {
+		    color:#ff0000;
+	    }
+
+	    td.hint
+	    {
+		    background-color:#dddddd;
+	    }
+
+	    td.selected
+	    {
+		    background-color:#99ffff;
+	    }
+
+
+	#overlay
+	{
+		visibility: hidden;
+		position: fixed;
+		left: 0px;
+		top: 0px;
+		width:100%;
+		height:100%;
+		background:rgba(0, 0, 0, 0.5) url("spinner.gif") center center no-repeat;
+		z-index: 1000;
+	}
+
+		</style>
+
+		<script type="text/javascript" src="sudoku.js"></script>
+		<script type="text/javascript">
+
+// implementing trim because IE sucks my balls.
+if(typeof String.prototype.trim !== 'function') {
+	String.prototype.trim = function() {
+		return this.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+	}
+}
+
+// stores the puzzle instance
+var thePuzzle;
+
+// initialize a new game. this generates and loads a new puzzle and sets up the
+// user interface controls.
+function init() {
+	thePuzzle = new Sudoku();
+
+	// update the level radio buttons with the current puzzle level.
+	for(var i = 0; i < document.controls.level.length; i++)
+	{
+		if(document.controls.level[i].value == thePuzzle.level)
+			document.controls.level[i].checked = true;
+	}
+
+	// initialize each cell.
+	for(var i = 0; i < 9; i++) {
+		for(var j = 0; j < 9; j++) {
+			var cell = document.getElementById("x" + i + "_" + j);
+
+			// install the onclick handler
+			cell.onclick = selectCell;
+
+			// when the page is first loaded, in firefox, first
+			// child is an empty text node, in IE first child is
+			// null.
+			if(!cell.firstChild)
+				cell.appendChild(document.createTextNode(""));
+
+			// if the value is 0, create a blank cell.
+			if(thePuzzle.getVal(i, j) == 0)
+				cell.firstChild.nodeValue = "";
+			else {
+				// if the value is not 0, set the value and mark
+				// the cell as a hint.
+				cell.firstChild.nodeValue = thePuzzle.getVal(i, j);
+				addClass(cell, "hint");
+			}
+		}
+	}
+
+	// install the keyboard handler
+	if(document.all) {
+		document.body.onkeydown = getKey;
+	}
+	else {
+		document.documentElement.onkeydown = getKey;
+	}
+
+	newGame();
+}
+
+// start a new game. this resets the board and generates a new puzzle.
+function newGame() {
+	var btn = document.getElementById("new");
+	btn.disabled = true;
+	var div = document.getElementById("overlay");
+
+	div.style.visibility = "visible";
+
+	unselectCell();
+
+	// update the puzzle difficulty level based on the radio buttons.
+	for(var i = 0; i < document.controls.level.length; i++)
+	{
+		if(document.controls.level[i].checked == true)
+			thePuzzle.level = parseInt(document.controls.level[i].value, 10);
+	}
+
+	thePuzzle.done = function() {
+		//console.log("done");
+		// update the board with the new puzzle data.
+		for(var i = 0; i < 9; i++) {
+			for(var j = 0; j < 9; j++) {
+				var cell = document.getElementById("x" + i + "_" + j);
+				removeClass(cell, "error");
+				if(thePuzzle.getVal(i, j) == 0) {
+					removeClass(cell, "hint");
+					cell.firstChild.nodeValue = "";
+				}
+				else {
+					cell.firstChild.nodeValue = thePuzzle.getVal(i, j);
+					addClass(cell, "hint");
+				}
+			}
+		}
+		btn.disabled = false;
+		div.style.visibility = "hidden";
+
+		var img = document.getElementById("qr");
+		img.src = "http://www.fourthwoods.com/sudokuforever/image.php?hints=" + thePuzzle.getBoardString();
+	};
+
+	// generate the new puzzle.
+	thePuzzle.newGame();
+}
+
+// solve the game and display the solution.
+function solve() {
+	thePuzzle.solveGame();
+
+	for(var i = 0; i < 9; i++) {
+		for(var j = 0; j < 9; j++) {
+			var cell = document.getElementById("x" + i + "_" + j);
+			cell.firstChild.nodeValue = thePuzzle.getVal(i, j);
+
+			showErrors(i, j); // this will actually remove the error
+			// highlighting if there were errors
+		}
+	}
+}
+
+// stores the last cell clicked on by the user.
+var selectedCell;
+
+// selects the cell clicked on by the user.
+function selectCell()
+{
+	unselectCell();
+
+	// if the cell is one that was automatically populated just return and
+	// not allow the cell to be selected.
+	if(containsClass(this, "hint"))
+		return;
+
+	// save the selected cell and highlight the square on the board.
+	selectedCell = this;
+	addClass(selectedCell, "selected");
+}
+
+// move the selected cell up to the next user selectable cell. if no cells are
+// selected this will automatically select the lowest right-most user selectable
+// cell. if there are no more cells up in the current column the selection will
+// wrap to the bottom and move one column to the left.
+function moveUp()
+{
+	var row;
+	var col;
+	if(!selectedCell)
+	{
+		row = 9;
+		col = 8;
+	}
+	else
+	{
+		var id = selectedCell.id;
+		id = id.substr(1);
+		var arr = id.split("_");
+		row = arr[0];
+		col = arr[1];
+	}
+
+	unselectCell();
+
+	var cell;
+	do
+	{
+		row--;
+		if(row < 0)
+		{
+			row = 8;
+			col = (col + 8) % 9;
+		}
+		cell = document.getElementById("x" + row + "_" + col);
+	}
+	while(containsClass(cell, "hint"));
+
+	selectedCell = cell;
+	addClass(selectedCell, "selected");
+}
+
+// move the selected cell down to the next user selectable cell. if no cells are
+// selected this will automatically select the top left-most user selectable
+// cell. if there are no more cells down in the current column the selection
+// will wrap to the top and move one column to the right.
+function moveDown()
+{
+	var row;
+	var col;
+	if(!selectedCell)
+	{
+		row = -1;
+		col = 0;
+	}
+	else
+	{
+		var id = selectedCell.id;
+		id = id.substr(1);
+		var arr = id.split("_");
+		row = arr[0];
+		col = arr[1];
+	}
+
+	unselectCell();
+
+	var cell;
+	do
+	{
+		row++; 
+		if(row > 8)
+		{
+			row = 0;
+			col = (col + 1) % 9;
+		}
+		cell = document.getElementById("x" + row + "_" + col);
+	}
+	while(containsClass(cell, "hint"));
+
+	selectedCell = cell;
+	addClass(selectedCell, "selected");
+}
+
+// move the selected cell left to the next user selectable cell. if no cells are
+// selected this will automatically select the right-most bottom user selectable
+// cell. if there are no more cells left in the current row the selection will
+// wrap to the right and move one row up.
+function moveLeft()
+{
+	var row;
+	var col;
+	if(!selectedCell)
+	{
+		row = 8;
+		col = 9;
+	}
+	else
+	{
+		var id = selectedCell.id;
+		id = id.substr(1);
+		var arr = id.split("_");
+		row = arr[0];
+		col = arr[1];
+	}
+
+	unselectCell();
+
+	var cell;
+	do
+	{
+		col--;
+		if(col < 0)
+		{
+			col = 8;
+			row = (row + 8) % 9;
+		}
+		cell = document.getElementById("x" + row + "_" + col);
+	}
+	while(containsClass(cell, "hint"));
+
+	selectedCell = cell;
+	addClass(selectedCell, "selected");
+}
+
+// move the selected cell right to the next user selectable cell. if no cells
+// are selected this will automatically select the left-most top user
+// selectable cell. if there are no more cells right in the current row the
+// selection will wrap to the left and move one row down.
+function moveRight()
+{
+	var row;
+	var col;
+	if(!selectedCell)
+	{
+		row = 0;
+		col = -1;
+	}
+	else
+	{
+		var id = selectedCell.id;
+		id = id.substr(1);
+		var arr = id.split("_");
+		row = arr[0];
+		col = arr[1];
+	}
+
+	unselectCell();
+
+	var cell;
+	do
+	{
+		col++; 
+		if(col > 8)
+		{
+			col = 0;
+			row = (row + 1) % 9;
+		}
+		cell = document.getElementById("x" + row + "_" + col);
+	}
+	while(containsClass(cell, "hint"));
+
+	selectedCell = cell;
+	addClass(selectedCell, "selected");
+}
+
+// unselects the selected cell. values entered are ignored until a cell is
+// selected again.
+function unselectCell()
+{
+	if(selectedCell)
+		removeClass(selectedCell, "selected");
+	selectedCell = null;
+}
+
+// sets the value for the selected cell.
+function setVal(row, col, val)
+{
+	// if there is no cell selected, ignore the input value.
+	if(!selectedCell)
+		return;
+
+	// set the puzzle value and draw the value in the cell.
+	thePuzzle.setVal(1 * row, 1 * col, val);
+	selectedCell.firstChild.nodeValue = (val > 0) ? val : "";
+
+	// check for conflicting values according to the sudoku rules and mark
+	// them.
+	showErrors(1 * row, 1 * col);
+
+	// check to see if the game is done.
+	if((val = thePuzzle.gameFinished()) != 0)
+	{
+		unselectCell();
+		var h = Math.floor(val / (60 * 60 * 1000));
+		var m = Math.floor(val % (60 * 60 * 1000) / (60 * 1000));
+		var s = Math.floor(val % (60 * 60 * 1000) % (60 * 1000) / 1000);
+		alert("Game completed: " + h + " hours, " + m + " minutes, " + s +
+				" seconds");
+	}
+}
+
+// adds a css class to an html element.
+function addClass(el, name)
+{
+	var arr;
+	var parent = el.parentElement;
+	var classes = parent.className;
+	if(!classes)
+		arr = new Array();
+	else {
+		classes = classes.trim();
+		arr = classes.split(" ");
+	}
+
+	if(!arr.contains(name))
+		arr.push(name);
+
+	parent.className = arr.join(" ");
+}
+
+// removes a css class from an html element.
+function removeClass(el, name)
+{
+	var arr;
+	var parent = el.parentElement;
+	var classes = parent.className;
+	if(classes)
+		arr = classes.split(" ");
+	else
+		arr = new Array();
+
+	var arr2 = new Array();
+
+	for(var i = 0; i < arr.length; i++)
+	{
+		if(arr[i] != name)
+			arr2.push(arr[i]);
+	}
+
+	if(arr2.length > 0)
+		parent.className = arr2.join(" ");
+	else
+		parent.className = "";
+}
+
+// determines whether or not an html element has the given class.
+function containsClass(el, name)
+{
+	var parent = el.parentElement;
+	var classes = parent.className;
+
+	var arr;
+	if(classes)
+		arr = classes.split(" ");
+	else
+		arr = new Array();
+
+	return arr.contains(name);
+}
+
+// checks the row, column and subsquare for the given row and column for any
+// conflicting values and highlights them. if there were any previously
+// highlighted that are no longer conflicting, the highlighting is removed.
+function showErrors(row, col)
+{
+	for (var i = 0; i < 9; i++)
+	{
+		var cell = document.getElementById("x" + row + "_" + i);
+		var val = thePuzzle.getVal(row, i);
+		if(thePuzzle.checkVal(row, i, val) == true)
+			removeClass(cell, "error");
+		else
+			addClass(cell, "error");
+	}
+
+	for (var i = 0; i < 9; i++)
+	{
+		var cell = document.getElementById("x" + i + "_" + col);
+		var val = thePuzzle.getVal(i, col);
+		if(thePuzzle.checkVal(i, col, val) == true)
+			removeClass(cell, "error");
+		else
+			addClass(cell, "error");
+	}
+
+	var r = row - row % 3;
+	var c = col - col % 3;
+	for(var i = r; i < r + 3; i++) {
+		for(var j = c; j < c + 3; j++) {
+			var cell = document.getElementById("x" + i + "_" + j);
+			var val = thePuzzle.getVal(i, j);
+			if(thePuzzle.checkVal(i, j, val) == true)
+				removeClass(cell, "error");
+			else
+				addClass(cell, "error");
+		}
+	}
+}
+
+// gets the keyboard input.
+function getKey(e)
+{
+	var id;
+	var arr;
+	if(selectedCell)
+	{
+		id = selectedCell.id;
+		id = id.substr(1);
+		arr = id.split("_");
+	}
+
+	if(document.all)
+		e = event;
+
+	if(e.keyCode)
+		code = e.keyCode;
+	else if(e.which)
+		code = e.which;
+
+	switch(code)
+	{
+		case 37: // lt
+			moveLeft();
+			break;
+		case 38: // up
+			moveUp();
+			break;
+		case 39: // rt
+			moveRight();
+			break;
+		case 40: // dn
+			moveDown();
+			break;
+		case 8: // backspace
+		case 46: // delete
+			if(arr)
+				setVal(arr[0], arr[1], 0);
+			return false;
+			break;
+		case 27: // escape
+			unselectCell();
+			break;
+		default:
+			if(arr)
+			{
+				if(code >= 49 && code <= 57) {				
+					setVal(arr[0], arr[1], code - 48);	
+				}		
+				else if(code >= 97 && code <= 105) {
+					setVal(arr[0], arr[1], code - 96);
+				}
+			}
+			break;
+	}
+}	
+
+function buttonPressed(val) {
+	var id;
+	var arr;
+	if(selectedCell)
+	{
+		id = selectedCell.id;
+		id = id.substr(1);
+		arr = id.split("_");
+
+		setVal(arr[0], arr[1], val);
+	}
+
+}
+
+		</script>
+
+</head>
+<body onload="init();">
+	<div id="overlay"></div>
+	<div class="container">
+		<div class="row" style="margin-top:10px;">
+			<div class="col-sm-8">
+				<div class="row">
+					<div class="col-md-12 text-center">
+					<form name="controls">
+					<input id="easy" type="radio" name="level" checked="true" value="0"><label for="easy">Easy</label>
+					<input id="medium" type="radio" name="level" value="1"><label for="medium">Medium</label>
+					<input id="hard" type="radio" name="level" value="2"><label for="hard">Hard</label>
+					</form>
+					</div>
+				</div>
+				<div class="row bottom-spacer-5">
+					<div class="col-md-12 text-center">
+					<input id="new" class="btn btn-default" type="button" value="New Game" onclick="newGame();">
+					<input class="btn btn-default" type="button" value="Solve It" onclick="solve();">
+					</div>
+				</div>
+				<div class="row bottom-spacer-5">
+					<div class="col-md-12">
+					<div class="board center-block">
+					<table>
+						<tr>
+							<td><div id="x0_0"></div></td>
+							<td><div id="x0_1"></div></td>
+							<td><div id="x0_2"></div></td>
+							<td><div id="x0_3"></div></td>
+							<td><div id="x0_4"></div></td>
+							<td><div id="x0_5"></div></td>
+							<td><div id="x0_6"></div></td>
+							<td><div id="x0_7"></div></td>
+							<td><div id="x0_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x1_0"></div></td>
+							<td><div id="x1_1"></div></td>
+							<td><div id="x1_2"></div></td>
+							<td><div id="x1_3"></div></td>
+							<td><div id="x1_4"></div></td>
+							<td><div id="x1_5"></div></td>
+							<td><div id="x1_6"></div></td>
+							<td><div id="x1_7"></div></td>
+							<td><div id="x1_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x2_0"></div></td>
+							<td><div id="x2_1"></div></td>
+							<td><div id="x2_2"></div></td>
+							<td><div id="x2_3"></div></td>
+							<td><div id="x2_4"></div></td>
+							<td><div id="x2_5"></div></td>
+							<td><div id="x2_6"></div></td>
+							<td><div id="x2_7"></div></td>
+							<td><div id="x2_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x3_0"></div></td>
+							<td><div id="x3_1"></div></td>
+							<td><div id="x3_2"></div></td>
+							<td><div id="x3_3"></div></td>
+							<td><div id="x3_4"></div></td>
+							<td><div id="x3_5"></div></td>
+							<td><div id="x3_6"></div></td>
+							<td><div id="x3_7"></div></td>
+							<td><div id="x3_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x4_0"></div></td>
+							<td><div id="x4_1"></div></td>
+							<td><div id="x4_2"></div></td>
+							<td><div id="x4_3"></div></td>
+							<td><div id="x4_4"></div></td>
+							<td><div id="x4_5"></div></td>
+							<td><div id="x4_6"></div></td>
+							<td><div id="x4_7"></div></td>
+							<td><div id="x4_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x5_0"></div></td>
+							<td><div id="x5_1"></div></td>
+							<td><div id="x5_2"></div></td>
+							<td><div id="x5_3"></div></td>
+							<td><div id="x5_4"></div></td>
+							<td><div id="x5_5"></div></td>
+							<td><div id="x5_6"></div></td>
+							<td><div id="x5_7"></div></td>
+							<td><div id="x5_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x6_0"></div></td>
+							<td><div id="x6_1"></div></td>
+							<td><div id="x6_2"></div></td>
+							<td><div id="x6_3"></div></td>
+							<td><div id="x6_4"></div></td>
+							<td><div id="x6_5"></div></td>
+							<td><div id="x6_6"></div></td>
+							<td><div id="x6_7"></div></td>
+							<td><div id="x6_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x7_0"></div></td>
+							<td><div id="x7_1"></div></td>
+							<td><div id="x7_2"></div></td>
+							<td><div id="x7_3"></div></td>
+							<td><div id="x7_4"></div></td>
+							<td><div id="x7_5"></div></td>
+							<td><div id="x7_6"></div></td>
+							<td><div id="x7_7"></div></td>
+							<td><div id="x7_8"></div></td>
+						</tr>
+						<tr>
+							<td><div id="x8_0"></div></td>
+							<td><div id="x8_1"></div></td>
+							<td><div id="x8_2"></div></td>
+							<td><div id="x8_3"></div></td>
+							<td><div id="x8_4"></div></td>
+							<td><div id="x8_5"></div></td>
+							<td><div id="x8_6"></div></td>
+							<td><div id="x8_7"></div></td>
+							<td><div id="x8_8"></div></td>
+						</tr>
+					</table>
+					</div>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col-xs-12 text-center keypad">
+					<div class="button-group bottom-spacer-5">
+					<button class="btn btn-default" value="1" onclick="buttonPressed(1)">1</button>
+					<button class="btn btn-default" value="2" onclick="buttonPressed(2)">2</button>
+					<button class="btn btn-default" value="3" onclick="buttonPressed(3)">3</button>
+					<button class="btn btn-default" value="4" onclick="buttonPressed(4)">4</button>
+					<button class="btn btn-default" value="5" onclick="buttonPressed(5)">5</button>
+					</div>
+					<div class="button_group bottom-spacer-5">
+					<button class="btn btn-default" value="6" onclick="buttonPressed(6)">6</button>
+					<button class="btn btn-default" value="7" onclick="buttonPressed(7)">7</button>
+					<button class="btn btn-default" value="8" onclick="buttonPressed(8)">8</button>
+					<button class="btn btn-default" value="9" onclick="buttonPressed(9)">9</button>
+					<button class="btn btn-default" value="0" onclick="buttonPressed(0)">X</button>
+					</div>
+					</div>
+				</div>
+			</div>
+			<div class="col-sm-4 hidden-xs">
+				<div class="bottom-spacer-5">
+					<h3>Get Sudoku Forever!</h3>
+				<a href="https://play.google.com/store/apps/details?id=com.fourthwoods.sudoku&utm_source=global_co&utm_medium=prtnr&utm_content=Mar2515&utm_campaign=PartBadge&pcampaignid=MKT-AC-global-none-all-co-pr-py-PartBadges-Oct1515-1"><img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/images/apps/en-play-badge-border.png" style="max-width:200px;"/></a>
+				</div>
+				<span class="bottom-spacer-5">Play this puzzle in Sudoku Forever for Android! Open Sudoku Forever and select "Scan QR Code" from the menu and scan the code below. If you do not have Sudoku Forever click the great big button and get it now on Google Play!</span>
+				<img id="qr" src="" style="max-hieght:100%; max-width:100%;">
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-lg-12">
+				<span>
+					<p><strong>Sudoku in JavaScript</strong><br/>This is my sudoku puzzle generator and solver that I originally wrote in JavaScript and is the basis for my <a href="https://play.google.com/store/apps/details?id=com.fourthwoods.sudoku&utm_source=global_co&utm_medium=prtnr&utm_content=Mar2515&utm_campaign=PartBadge&pcampaignid=MKT-AC-global-none-all-co-pr-py-PartBadges-Oct1515-1">Sudoku Forever</a> app for Android. The source code is available under a BSD license. The user interface is contained within this html page. The solver engine <a href="http://www.fourthwoods.com/sudoku.js">can be downloaded here</a>. This is essentially the same solver used in Sudoku Forever albiet much older and not optimized very well. Feel free to use this code for whatever you want. A shout out is not necessary but always appreciated.
+					<p><strong>Instructions:</strong><br/>Desktop users may use a keyboard and mouse to enter numbers. Mobile users may use the keypad. Or if you are on the desktop and like clicking a lot, you may also use the keypad.
+					<p><strong>Rules:</strong><br/>The rules are pretty simple, each row, column and 3x3 square must contain the numbers 1-9 with no duplicates.</p>
+					<p>Medium and Hard levels may take a few seconds to load.
+					<p><strong>Internet Explorer:</strong>
+					<br/>Internet Explorer may complain about the script taking too long and ask if you want to stop it. You may need to click No several times. I may fix this in a future version (but I doubt it).</p>
+				</span>
+			</div>
+		</div>
+	</div>
+</body>
+</html>
+
