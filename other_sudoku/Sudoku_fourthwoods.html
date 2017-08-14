@@ -8,16 +8,26 @@
 
 		<title>Sudoku</title>
 
-		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+		<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>-->
+		<script src="cdn/jquery3.1.1.min.js"></script>
 
 		<!-- Latest compiled and minified CSS -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous"> -->
 
 		<!-- Optional theme -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+		<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous"> -->
 
 		<!-- Latest compiled and minified JavaScript -->
-		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+		<!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script> -->
+
+		<!-- Latest compiled and minified CSS -->
+		<link rel="stylesheet" href="cdn/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+		<!-- Optional theme -->
+		<link rel="stylesheet" href="cdn/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+
+		<!-- Latest compiled and minified JavaScript -->
+		<script src="cdn/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
 		<!--
 	  Sudoku Generator
@@ -254,7 +264,8 @@ function newGame() {
 		div.style.visibility = "hidden";
 
 		var img = document.getElementById("qr");
-		img.src = "http://www.fourthwoods.com/sudokuforever/image.php?hints=" + thePuzzle.getBoardString();
+		// img.src = "http://www.fourthwoods.com/sudokuforever/image.php?hints=" + thePuzzle.getBoardString();
+		img.src = "image.php?hints=" + thePuzzle.getBoardString();
 	};
 
 	// generate the new puzzle.
@@ -812,6 +823,7 @@ function buttonPressed(val) {
 					</div>
 				</div>
 			</div>
+			<!--
 			<div class="col-sm-4 hidden-xs">
 				<div class="bottom-spacer-5">
 					<h3>Get Sudoku Forever!</h3>
@@ -820,6 +832,7 @@ function buttonPressed(val) {
 				<span class="bottom-spacer-5">Play this puzzle in Sudoku Forever for Android! Open Sudoku Forever and select "Scan QR Code" from the menu and scan the code below. If you do not have Sudoku Forever click the great big button and get it now on Google Play!</span>
 				<img id="qr" src="" style="max-hieght:100%; max-width:100%;">
 			</div>
+			-->
 		</div>
 		<div class="row">
 			<div class="col-lg-12">
